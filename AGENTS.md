@@ -92,7 +92,7 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 - Reconnect: `onclose` → **один** lifecycle hook — пересоздать `new WebTransport(url)`
   (максимум N попыток + backoff). **Не дублировать** reconnect в других местах.
 - **Фрейминг** байтового потока — только здесь (см. `proto/PROTOCOL.md`).
-- Файлы-сериализация: protobuf-es в adapter (`Greeting.encode()`/`Greeting.decode()`),
+- Сериализация: protobuf-es в adapter (`Greeting.encode()`/`Greeting.decode()`),
   НЕ в компонентах.
 
 ### Потребитель
@@ -133,7 +133,7 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 - **Яндекс Browser** (= Chromium) — **первичен**; НЕ `chrome.exe`/`msedge.exe`.
 - CDP `127.0.0.1:9222`, skill `browser-debug`, debug-профиль `browser-harness-profile`.
 - Сценарий: handshake → reliable stream echo → datagram round-trip → close gracefully.
-- Secure context: `https://localhost:9443` (см. `certs/AGENTS.md`), WebTransport доступен.
+- Secure context: `https://localhost:9443` (см. [certs/AGENTS.md](../certs/AGENTS.md)), WebTransport доступен.
 
 ## Команды
 
@@ -148,7 +148,7 @@ npm i -D @bufbuild/buf @bufbuild/protoc-gen-es
 # Создать: buf.gen.yaml + scripts/clean-proto.js + scripts/generate-proto-index.js
 # Скрипт proto:gen в package.json
 
-# Протубоген (после изменения proto/):
+# Кодоген (после изменения proto/):
 npm run proto:gen
 
 # Dev / build / test / lint:
@@ -166,8 +166,8 @@ npm run lint
 
 - ❌ Не писать `standalone: true` / `OnPush` явно. Не тащить `@angular/animations`.
 - ❌ Не импортировать исходники `server/` или `proto/` — только сгенерированный код из
-  `src/proto-generated/` (вывод кодогена).
-- ❌ Не редактировать `src/proto-generated/` — чинить через `.proto` → `npm run proto:gen`.
+  `src/proto-generated/` (вывод кодогена). Правило «не редактировать `src/proto-generated/`»
+  — общее, см. корневой [../AGENTS.md](../AGENTS.md) §5/§7.
 - ❌ Не размазывать WebTransport-детали (streams/datagrams/backpressure/reconnect) по
   компонентам — только в адаптере.
 - ❌ Не создавать второй WebTransport рядом с первым — **singleton** на всё приложение
