@@ -1,7 +1,7 @@
 # AGENTS.md — web/ (репо #2: Angular-приложение)
 
 > Правила конкретного подрепо **`web/`**. Общие workspace-правила (стек, окружение
-> хоста, общие Guardrails, общие Definition of Done) — в корневом `../AGENTS.md`.
+> хоста, общие Guardrails, общие Definition of Done) — в корневом [../AGENTS.md](../AGENTS.md).
 > Приоритет: этот файл + корневой.
 
 ## Назначение
@@ -46,7 +46,7 @@ UI — Taiga UI v5.
 ## Protobuf в `web/`
 
 **Стек**: `@bufbuild/protobuf` (protobuf-es) + `buf` v2 + `protoc-gen-es` (`target=ts`).
-**НЕ** `ts-proto`/`protobufjs`/`@protobuf-ts/runtime` (корневой `../AGENTS.md` §2).
+**НЕ** `ts-proto`/`protobufjs`/`@protobuf-ts/runtime` (корневой [../AGENTS.md](../AGENTS.md) §2).
 
 **Раскладка**:
 ```
@@ -82,7 +82,7 @@ plugins:
 ## WebTransport-клиент (SEAM)
 
 Архитектура — **Контракт + Реализация + Потребитель** (тройное обязательство, см. корневой
-`../AGENTS.md` §5).
+[../AGENTS.md](../AGENTS.md) §5).
 
 ### Контракт
 Файл: `src/core/transport/web-transport-client.ts` (интерфейс).
@@ -162,7 +162,7 @@ npm run lint
 ```
 
 > Точные флаги scaffold и конфиги (`angular.json`, `tsconfig.json`) — сверять с
-> Angular CLI v22 дефолтами. Корневой `../AGENTS.md` §4 — ссылка на корпус документации
+> Angular CLI v22 дефолтами. Корневой [../AGENTS.md](../AGENTS.md) §4 — ссылка на корпус документации
 > Angular v22.
 
 ## Guardrails (свои)
