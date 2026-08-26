@@ -12,9 +12,17 @@ UI — Taiga UI v5.
 
 ## Статус репо
 
-`ng new` уже выполнен (2026-08-26). Git-репо авто-создано, первый коммит «initial commit».
-Зависимости — из дефолтов `ng new`. **Ничего не править вручную**, пока не требуется:
-сначала — добавить контракты (`proto/`), потом — подключить кодоген, потом — адаптер.
+`ng new` выполнен (2026-08-26). Git-репо, основной коммит «initial commit».
+Зависимости — дефолты `ng new` + protobuf-линия (runtime `@bufbuild/protobuf`,
+dev `@bufbuild/buf` + `@bufbuild/protoc-gen-es`).
+
+**Сделано**: `buf.gen.yaml` + `scripts/` + `proto:gen`; `src/proto-generated/`
+сгенерирован и **в сборке** (`ng build` strict — зелёный, `tsc --noEmit` — 0,
+runtime-бандл Envelope round-trip — зелёный).
+
+**Следующим**: WebTransport-клиент (SEAM: `web-transport-client.ts` интерфейс /
+`web-transport-adapter.ts` реализация) + DI-реестр фич + логгер-фасад;
+затем — верификация транспорта в браузере. Пока не сделано — не править вручную.
 
 ## Stack и правила (Angular 22)
 
@@ -151,24 +159,24 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 
 ```bash
 cd web
-# Уже сделано: ng new web --zoneless --defaults --style=css --strict --no-ssr --package-manager=npm
-# И есть: package.json, node_modules, .git (commit 3d0c8ed)
+# Proto-pipeline (УЖЕ НА МЕСТЕ: buf.gen.yaml + scripts/ + proto:gen):
+npm run proto:gen     # после изменения proto/ (генерит src/proto-generated/ + баррел)
+npm run clean:proto   # только чистка src/proto-generated/ (без кодогена)
 
-# Добавить proto-pipeline (один раз):
-npm i @bufbuild/protobuf
-npm i -D @bufbuild/buf @bufbuild/protoc-gen-es
-# Создать: buf.gen.yaml + scripts/clean-proto.js + scripts/generate-proto-index.js
-# Скрипт proto:gen в package.json
-
-# Кодоген (после изменения proto/):
-npm run proto:gen
-
-# Dev / build / test / lint:
+# Dev / build / test:
 npm run start
 npm run build
 npm test
-npm run lint
+# Тип-чек (весь src/**/*.ts incl proto-generated, strict):
+npx tsc -p tsconfig.app.json --noEmit
 ```
+
+> Версии protobuf-линки (один runtime во всём workspace, см. корневой §7):
+> runtime `@bufbuild/protobuf` 2.14.x; dev `@bufbuild/buf` 1.72.x,
+> `@bufbuild/protoc-gen-es` 2.14.x. Codegen 2.14 = **codegenv2 API**
+> (`type Envelope` + `EnvelopeSchema`, `create()/toBinary()/fromBinary()`),
+> **не** старое `Envelope.encode()/decode()` — см. как в
+> `server/src/codec/envelope-codec.ts`.
 
 > Точные флаги scaffold и конфиги (`angular.json`, `tsconfig.json`) — сверять с
 > Angular CLI v22 дефолтами. Корневой [../AGENTS.md](../AGENTS.md) §4 — ссылка на корпус документации
@@ -192,8 +200,11 @@ npm run lint
 
 ## Definition of Done (по `web/`)
 
-- [ ] `buf.gen.yaml` на месте; `scripts/clean-proto.js` и `scripts/generate-proto-index.js`
+- [x] `buf.gen.yaml` на месте; `scripts/clean-proto.js` и `scripts/generate-proto-index.js`
       работают; `proto:gen` в `package.json` и даёт `src/proto-generated/*.ts`.
+      Проверено: `npm run proto:gen` → 2 `_pb.ts` + баррел; `ng build` (strict) — 0 ошибок;
+      `tsc -p tsconfig.app.json --noEmit` — 0; runtime-бандл (esbuild + node):
+      Envelope round-trip, int64→bigint, oneof/enum, 18 runtime-имён в барреле.
 - [ ] SEAM в месте реализации: `web-transport-client.ts` (интерфейс) / `web-transport-adapter.ts`
       (реализация) / компоненты (потребители) — разделены.
 - [ ] `npm run build` — без ошибок TS (strict, без `any`); `npm run lint` — чисто.

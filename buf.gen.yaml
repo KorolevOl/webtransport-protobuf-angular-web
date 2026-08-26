@@ -1,0 +1,11 @@
+# buf.gen.yaml — v2, СВОЙ ФИЗИЧЕСКИЙ ФАЙЛ (содержимое идентично server/buf.gen.yaml).
+# Кодирует: «каждое подрепо — автономный, со своим физическим кодоген-конфигом,
+# но с одним и тем же runtime и набором опций» (§2, §7 корневой AGENTS.md).
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/proto-generated
+    opt:
+      - target=ts
+      - import_extension=none
+      # - json_types=true   # если нужен JSON-mapping (пока не включён)
