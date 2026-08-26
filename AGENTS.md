@@ -170,6 +170,8 @@ npm run lint
 - ❌ Не редактировать `src/proto-generated/` — чинить через `.proto` → `npm run proto:gen`.
 - ❌ Не размазывать WebTransport-детали (streams/datagrams/backpressure/reconnect) по
   компонентам — только в адаптере.
+- ❌ Не создавать второй WebTransport рядом с первым — **singleton** на всё приложение
+  (см. корневой [../AGENTS.md](../AGENTS.md) §1 «Живой цикл WebTransport (singleton)»).
 - ❌ Не писать в stream без учёта `desiredSize`.
 - ❌ Не дублировать reconnect в нескольких местах.
 
