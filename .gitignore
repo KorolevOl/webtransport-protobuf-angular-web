@@ -1,4 +1,5 @@
-# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+# ============== web/ — Angular-приложение ==============
+# (base-часть генерируется Angular CLI; IDE/AI-блок — shared canonical)
 
 # Compiled output
 /dist
@@ -11,25 +12,65 @@
 npm-debug.log
 yarn-error.log
 
-# IDEs and editors
+# ============================================================
+# IDEs and editors — SHARED canonical block (identical in root +
+# proto/ + web/ + server/ + certs/ of this workspace). Keep in sync.
+# ============================================================
+
+# JetBrains (IntelliJ IDEA / WebStorm / GoLand / PyCharm / Fleet / Rider)
 .idea/
+.fleet/
+
+# Eclipse
 .project
 .classpath
-.c9/
-*.launch
 .settings/
-*.sublime-workspace
 
-# Visual Studio Code
+# Visual Studio Code  (whitelist: shareable project config)
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/mcp.json
-.history/*
+.history/
 
-# Miscellaneous
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Cloud9
+.c9/
+
+# Vim / Neovim swap files
+*.swp
+*.swo
+
+# AI IDEs (Cursor / Windsurf)
+.cursor/
+.windsurf/
+
+# AI pair-programmers / agent local session folders
+.clawd/
+.clawd-tmp/
+.claude/
+.codex/
+.copilot/
+.aider*
+.trae/
+.trae-cn/
+.trae-aicr/
+.devin/
+.agents/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Angular-specific
+# ============================================================
 /.angular/cache
 .sass-cache/
 /connect.lock
@@ -38,7 +79,3 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
-
-# System files
-.DS_Store
-Thumbs.db
