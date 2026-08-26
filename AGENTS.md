@@ -30,54 +30,31 @@ UI — Taiga UI v5.
   CSS custom properties; **БЕЗ** `@angular/animations`.
 
 ### TypeScript
-- **strict** (включён в `ng new`); strict flags — те, что в `tsconfig.json` дефолта (см.
-  `tsconfig.json` подрепо).
-- **`no` `any`** — при неопределённости — `unknown` + narrowing, а не `any`.
-- Имена файлов — **дефисы** (пример: `user-profile.component.ts`, `web-transport-adapter.ts`).
-- **БЕЗ** `helpers.ts`/`utils.ts` — каждая функция со своим модулем.
+Общие TS-правила (strict, no any, дефисы в именах, без helpers/utils) — в
+корневом [../AGENTS.md](../AGENTS.md) §7. Конкретные strict-флаги — в `tsconfig.json` подрепо.
 
 ### Логи
-- ОДЕН **logger-фасад** — все логи через него (библиотека — на выбор, candidate: `@taiga-ui/kit-logging`
-  или свой тонкий слой).
-- Критичные пути: вход/выход функций, ветвления решений, запуск внеш. операций (сеть/диск/
-  subprocess), обработка ошибок, переходы состояний — **лог обязательный**.
-- Код без логов — баг отладочного постафактум.
+Общие правила логирования (единый фасад, критичные пути) — в корневом [../AGENTS.md](../AGENTS.md) §7.
+В `web/` кандидат — `@taiga-ui/kit-logging` либо свой тонкий слой.
 
 ## Protobuf в `web/`
 
-**Стек**: `@bufbuild/protobuf` (protobuf-es) + `buf` v2 + `protoc-gen-es` (`target=ts`).
-**НЕ** `ts-proto`/`protobufjs`/`@protobuf-ts/runtime` (корневой [../AGENTS.md](../AGENTS.md) §2).
+Канон кодогена (protobuf-es, `buf.gen.yaml`, `proto:gen`, зависимости, запрет кодогена
+через `ts-proto`/`protobufjs`) — в корневом [../AGENTS.md](../AGENTS.md) §7. Ниже — только то,
+что специфично для `web/`: путь вывода.
 
 **Раскладка**:
 ```
 web/
-├── buf.gen.yaml           # v2; plugin protoc-gen-es; out=src/proto-generated; target=ts
+├── buf.gen.yaml           # v2 — общий с server/, см. корневой §7
 ├── scripts/
 │  ├── clean-proto.js       # rm -rf src/proto-generated
 │  └── generate-proto-index.js  # баррел index.ts для src/proto-generated
 └── src/proto-generated/    # ВЫВОД — НИКОГДА не редактировать
 ```
 
-**`buf.gen.yaml` (v2)**:
-```yaml
-version: v2
-plugins:
-  - local: protoc-gen-es
-    out: src/proto-generated
-    opt:
-      - target=ts
-      - import_extension=none
-      # - json_types=true   # если нужен JSON-mapping
-```
-
-**Скрипты `package.json`**:
-```json
-"proto:gen": "node scripts/clean-proto.js && buf generate ../proto && node scripts/generate-proto-index.js"
-```
-
-**Зависимости**:
-- Runtime: `@bufbuild/protobuf`
-- Dev: `@bufbuild/buf`, `@bufbuild/protoc-gen-es`
+> Конфиг `buf.gen.yaml`, скрипт `proto:gen` и зависимости — идентичны `server/`,
+> канон — в корневом [../AGENTS.md](../AGENTS.md) §7.
 
 ## WebTransport-клиент (SEAM)
 
@@ -167,8 +144,7 @@ npm run lint
 
 ## Guardrails (свои)
 
-- ❌ Не писать `any`. Не писать `standalone: true`/`OnPush` явно.
-- ❌ Не тащить `@angular/animations`.
+- ❌ Не писать `standalone: true` / `OnPush` явно. Не тащить `@angular/animations`.
 - ❌ Не импортировать исходники `server/` или `proto/` — только сгенерированный код из
   `src/proto-generated/` (вывод кодогена).
 - ❌ Не редактировать `src/proto-generated/` — чинить через `.proto` → `npm run proto:gen`.
@@ -176,8 +152,6 @@ npm run lint
   компонентам — только в адаптере.
 - ❌ Не писать в stream без учёта `desiredSize`.
 - ❌ Не дублировать reconnect в нескольких местах.
-- ❌ Не использовать `ts-proto`/`protobufjs`.
-- ❌ Не `chrome.exe`/`msedge.exe` для верификации — **Яндекс Browser**.
 
 ## Definition of Done (по `web/`)
 
