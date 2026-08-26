@@ -108,6 +108,26 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 - Reconnect attempt N.
 - Backpressure: desiredSize = 0 — warning.
 
+## Токен и редирект (своё)
+
+Канон модели взаимодействия (всё через WebTransport, кроме логина/регистрации и
+получения токена) — в корневом [../AGENTS.md](../AGENTS.md) §1 «Модель взаимодействия фрон ↔ бэк».
+
+Что специфично для `web/`:
+- **Хранение токена** — `sessionStorage` (не `localStorage` — не переживает закрытие
+  вкладки) под отдельным ключом; **один** источник, все чтения через один сервис
+  `src/core/auth/token-store.ts` (сигнал `currentToken`).
+- **Route guard / interceptor**: видит 401/403 → запоминает текущий URL в
+  `sessionStorage` (`redirect_after_auth`) → redirect на
+  `/login?redirect=<зачищенный-URL>`.
+- **После login-успеха** — router navigates на `redirect_after_auth` (или на `?redirect`
+  из URL логина), ключ очищается.
+- **Логин/регистрация** — через `HttpClient` (это единственное, что ходит по обычной
+  HTTP, не WebTransport); **после** получения токена все остальные запросы — только
+  `WebTransportClient`.
+- **Refresh** — по политикам из `proto/PROTOCOL.md`; в `web/` — отдельный интерцептор
+  / сервис, **не** размазанный по компонентам.
+
 ## Верификация
 
 - **Яндекс Browser** (= Chromium) — **первичен**; НЕ `chrome.exe`/`msedge.exe`.
