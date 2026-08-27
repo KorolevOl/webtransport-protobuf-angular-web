@@ -1,0 +1,36 @@
+<div class="auth-card">
+  <h2>Вход</h2>
+  <p class="muted">Уже есть аккаунт — войдите своим e-mail.</p>
+
+  @if (busy()) {
+    <div class="notice">Запрашиваем сервер…</div>
+  } @else {
+    <form (submit)="$event.preventDefault(); onSubmit()">
+      <label class="field">
+        <span class="label">E-mail</span>
+        <input type="email" autocomplete="email" [formField]="form.email" />
+        @if (form.email().errors().length > 0) {
+          <small class="err">{{ form.email().errors()[0]?.message }}</small>
+        }
+      </label>
+
+      <label class="field">
+        <span class="label">Пароль</span>
+        <input type="password" autocomplete="current-password" [formField]="form.password" />
+        @if (form.password().errors().length > 0) {
+          <small class="err">{{ form.password().errors()[0]?.message }}</small>
+        }
+      </label>
+
+      @if (serverError(); as err) {
+        <div class="notice err">{{ err }}</div>
+      }
+
+      <button type="submit">Зайти</button>
+    </form>
+  }
+
+  <p class="muted">
+    Нет аккаунта? <a routerLink="/register">Зарегистрироваться →</a>
+  </p>
+</div>

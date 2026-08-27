@@ -1,0 +1,41 @@
+<div class="auth-card">
+  <h2>Регистрация</h2>
+  <p class="muted">Создайте аккаунт, чтобы войти.</p>
+
+  @if (busy()) {
+    <div class="notice">Создаём аккаунт…</div>
+  } @else {
+    <form (submit)="$event.preventDefault(); onSubmit()">
+      <label class="field">
+        <span class="label">E-mail</span>
+        <input type="email" autocomplete="email" [formField]="form.email" />
+        @if (form.email().errors().length > 0) {
+          <small class="err">{{ form.email().errors()[0]?.message }}</small>
+        }
+      </label>
+
+      <label class="field">
+        <span class="label">Имя (опционально)</span>
+        <input type="text" autocomplete="name" [formField]="form.displayName" />
+      </label>
+
+      <label class="field">
+        <span class="label">Пароль</span>
+        <input type="password" autocomplete="new-password" [formField]="form.password" />
+        @if (form.password().errors().length > 0) {
+          <small class="err">{{ form.password().errors()[0]?.message }}</small>
+        }
+      </label>
+
+      @if (serverError(); as err) {
+        <div class="notice err">{{ err }}</div>
+      }
+
+      <button type="submit">Зарегистрироваться</button>
+    </form>
+  }
+
+  <p class="muted">
+    Уже есть аккаунт? <a routerLink="/login">Войти →</a>
+  </p>
+</div>

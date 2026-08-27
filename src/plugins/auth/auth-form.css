@@ -1,0 +1,12 @@
+.auth-card { max-width: 24rem; margin: 3rem auto; padding: 1.5rem; border: 1px solid #d1d5db; border-radius: 0.75rem; }
+.auth-card h2 { margin-top: 0; }
+.muted { color: #6b7280; font-size: 0.9rem; }
+.field { display: block; margin: 1rem 0; }
+.label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+.field input { width: 100%; padding: 0.5rem 0.65rem; border: 1px solid #9ca3af; border-radius: 0.4rem; box-sizing: border-box; }
+.err { color: #b91c1c; font-size: 0.8rem; }
+.notice { padding: 0.5rem 0.75rem; border-radius: 0.4rem; margin: 0.75rem 0; background: #f3f4f6; font-size: 0.9rem; }
+.notice.err { background: #fee2e2; color: #991b1b; }
+button { padding: 0.55rem 1rem; border-radius: 0.45rem; border: 1px solid #111827; background: #111827; color: #fff; cursor: pointer; min-width: 8rem; }
+button[disabled] { opacity: 0.6; cursor: not-allowed; }
+a { color: #2563eb; }
