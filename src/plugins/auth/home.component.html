@@ -1,0 +1,42 @@
+<div class="home">
+  <header class="top">
+    <strong>AWP · Web</strong>
+    <a class="link" routerLink="/login">Войти заново</a>
+  </header>
+
+  @if (state.isAuthenticated()) {
+    <section class="card">
+      <h3>Сессия активна</h3>
+      <dl class="kv">
+        <dt>e-mail</dt>
+        <dd>{{ state.email() || '(не задано сервером)' }}</dd>
+
+        <dt>Имя</dt>
+        <dd>{{ state.displayName() || '—' }}</dd>
+
+        <dt>транспорт</dt>
+        <dd>{{ transportName() }} (<code>POST /v1/exchange</code> · <code>Content-Type: application/octet-stream</code>)</dd>
+
+        <dt>access-токен</dt>
+        <dd>{{ tokenPreview() }} <span class="muted">({{ state.email() ? 'получен' : 'restore' }})</span></dd>
+      </dl>
+    </section>
+  } @else {
+    <section class="card">
+      <h3>Вы не залогинены</h3>
+      <p>
+        <a routerLink="/login">Войти</a> или
+        <a routerLink="/register">зарегистрироваться</a>.
+      </p>
+    </section>
+  }
+
+  @if (state.isAuthenticated()) {
+    <button class="btn-danger" type="button" (click)="onLogout()" [disabled]="busy()">Выйти</button>
+  }
+
+  <p class="foot muted">
+    Живой обмен (без моков):
+    <code>web → server</code> POST <code>/v1/exchange</code> body <code>Envelope(case=loginRequest | registerRequest | logoutRequest)</code>
+  </p>
+</div>

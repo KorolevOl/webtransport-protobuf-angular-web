@@ -1,0 +1,77 @@
+// home.component.scss — стили post-auth страницы (SCSS, правило workflow/angular-scss)
+$border: #d1d5db;
+$muted: #6b7280;
+$danger: #b91c1c;
+$mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+$code-bg: #f3f4f6;
+
+.home {
+  max-width: 30rem;
+  margin: 2rem auto;
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+
+    .link {
+      color: inherit;
+    }
+  }
+
+  .card {
+    border: 1px solid $border;
+    border-radius: 0.6rem;
+    padding: 1rem 1.25rem;
+    margin: 1rem 0;
+
+    .kv {
+      display: grid;
+      grid-template-columns: 11rem 1fr;
+      gap: 0.5rem 1rem;
+      margin: 1rem 0 0;
+
+      dt {
+        color: $muted;
+      }
+
+      dd {
+        margin: 0;
+        font-family: $mono;
+        word-break: break-all;
+      }
+    }
+  }
+
+  .muted {
+    color: $muted;
+    font-size: 0.85rem;
+  }
+
+  .btn-danger {
+    margin-top: 1rem;
+    padding: 0.55rem 1rem;
+    border-radius: 0.45rem;
+    border: 1px solid $danger;
+    background: white;
+    color: $danger;
+    cursor: pointer;
+
+    &[disabled] {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .foot {
+    margin-top: 2rem;
+  }
+
+  code {
+    background: $code-bg;
+    padding: 0.05rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.85em;
+  }
+}
