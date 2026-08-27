@@ -22,13 +22,15 @@ import {
   AuthErrorCode,
 } from '../../proto-generated/index';
 
-import { protoEnvelopeCodec } from './envelope-codec';
-import type { ITransport } from './transport';
-import { ITRANSPORT } from './transport-http';
-import { authLog } from './auth-logger';
-import type { TokenPair, ITokenStore } from './token-store';
-import { TOKEN_STORE } from './token-store';
+import { protoEnvelopeCodec } from '../../core/codec/envelope-codec';
+import type { ITransport } from '../../core/transport/transport';
+import { ITRANSPORT } from '../../core/transport/transport-http';
+import { appLog } from '../../core/log/logger';
+import type { TokenPair, ITokenStore } from '../../core/session/token-store';
+import { TOKEN_STORE } from '../../core/session/token-store';
 import { AuthState } from './auth.state';
+
+const log = appLog('auth');
 
 function messageId(): string {
   return 'web-' + Math.random().toString(36).slice(2, 10);
@@ -87,7 +89,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string): Promise<AuthSessionLocal> {
-    authLog.info('login', { email });
+    log.info('login', { email });
     const payload = pbCreate(LoginRequestSchema, { email, password });
     const resp = await this.dispatch(payload, 'loginRequest');
     const result = this.expectCase<LoginResponse>(resp, 'loginResponse', 'login');
@@ -95,7 +97,7 @@ export class AuthService {
   }
 
   async register(email: string, password: string, displayName: string): Promise<AuthSessionLocal> {
-    authLog.info('register', { email });
+    log.info('register', { email });
     const payload = pbCreate(RegisterRequestSchema, { email, password, displayName });
     const resp = await this.dispatch(payload, 'registerRequest');
     const result = this.expectCase<RegisterResponse>(resp, 'registerResponse', 'register');
@@ -105,7 +107,7 @@ export class AuthService {
   async refresh(): Promise<AuthSessionLocal | null> {
     const s = this.session;
     if (!s) return null;
-    authLog.info('refresh', { had_refresh_token: !!s.tokens.refreshToken });
+    log.info('refresh', { had_refresh_token: !!s.tokens.refreshToken });
     const payload = pbCreate(RefreshRequestSchema, { refreshToken: s.tokens.refreshToken });
     const resp = await this.dispatch(payload, 'refreshRequest');
     const result = this.expectCase<RefreshResponse>(resp, 'refreshResponse', 'refresh');
@@ -120,7 +122,7 @@ export class AuthService {
       accessExpiresAt: Date.now() + Number(t.accessExpiresIn) * 1000,
       refreshExpiresAt: Date.now() + Number(t.refreshExpiresIn) * 1000,
     };
-    authLog.info('refresh: ok', { access_expires_in: t.accessExpiresIn, refresh_expires_in: t.refreshExpiresIn });
+    log.info('refresh: ok', { access_expires_in: t.accessExpiresIn, refresh_expires_in: t.refreshExpiresIn });
     return this.session;
   }
 
@@ -131,16 +133,16 @@ export class AuthService {
       this.session = null;
       return;
     }
-    authLog.info('logout', { email: s.email });
+    log.info('logout', { email: s.email });
     try {
       const payload = pbCreate(LogoutRequestSchema, { refreshToken: s.tokens.refreshToken });
       const resp = await this.dispatch(payload, 'logoutRequest');
       const result = this.expectCase<LogoutResponse>(resp, 'logoutResponse', 'logout');
       if (result.outcome.case === 'error') {
-        authLog.warn('logout: server reported error, но сессию снимаю локально', result.outcome.value);
+        log.warn('logout: server reported error, но сессию снимаю локально', result.outcome.value);
       }
     } catch (e) {
-      authLog.warn('logout: транспорт упал, но сессию снимаю локально', e);
+      log.warn('logout: транспорт упал, но сессию снимаю локально', e);
     }
     this.store.clear();
     this.session = null;
@@ -158,14 +160,14 @@ export class AuthService {
     }) as Envelope;
     const bytes = this.codec.encode(env);
     return this.transport.dispatchEnvelope(bytes).then((raw) => {
-      authLog.debug('dispatch', { case: caseName, ms: Date.now() - t0, bytes: bytes.byteLength });
+      log.debug('dispatch', { case: caseName, ms: Date.now() - t0, bytes: bytes.byteLength });
       return this.codec.decode(raw);
     });
   }
 
   private expectCase<T>(env: Envelope, expected: string, op: string): T {
     if (env.payload.case !== expected) {
-      authLog.error(`${op}: unexpected case`, { got: env.payload.case, expected });
+      log.error(`${op}: unexpected case`, { got: env.payload.case, expected });
       throw new Error(`expected ${expected}, got ${env.payload.case}`);
     }
     return env.payload.value as T;
@@ -189,12 +191,12 @@ export class AuthService {
       accessExpiresAt: Date.now() + Number(tokens.accessExpiresIn) * 1000,
       refreshExpiresAt: Date.now() + Number(tokens.refreshExpiresIn) * 1000,
     };
-    authLog.info(`${op}: ok`, { email: this.session.email, access_expires_in: tokens.accessExpiresIn });
+    log.info(`${op}: ok`, { email: this.session.email, access_expires_in: tokens.accessExpiresIn });
     return this.session;
   }
 
   private serverError(e: { code: AuthErrorCode; message: string }): AuthError {
-    authLog.warn('server error', { code: e.code, message: e.message });
+    log.warn('server error', { code: e.code, message: e.message });
     return new AuthError(e.code, e.message);
   }
 
@@ -217,6 +219,6 @@ export class AuthService {
       accessExpiresAt: 0,
       refreshExpiresAt: 0,
     };
-    authLog.info('restore: restored tokens from sessionStorage');
+    log.info('restore: restored tokens from sessionStorage');
   }
 }

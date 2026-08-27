@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { email, form, FormField, maxLength, minLength, required, type FieldTree } from '@angular/forms/signals';
-import { AuthError, AuthService } from './auth.service';
+import { AuthError, AuthService } from '../../auth.service';
 
 interface RegisterModel { email: string; password: string; displayName: string; }
 
@@ -9,7 +9,7 @@ interface RegisterModel { email: string; password: string; displayName: string; 
   selector: 'auth-register',
   imports: [RouterLink, FormField],
   templateUrl: './auth-register.html',
-  styleUrl: './auth-form.scss'
+  styleUrl: '../auth-form.scss'
 })
 export class AuthRegisterComponent {
   private readonly auth = inject(AuthService);

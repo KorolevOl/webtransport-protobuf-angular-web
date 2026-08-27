@@ -7,8 +7,8 @@
 import { Component, inject, computed, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
-import { AuthService } from './auth.service';
-import { AuthState } from './auth.state';
+import { AuthService } from '../../auth.service';
+import { AuthState } from '../../auth.state';
 
 @Component({
   selector: 'awp-home',

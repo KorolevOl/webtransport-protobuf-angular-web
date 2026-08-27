@@ -5,20 +5,21 @@
 //
 // У сервера (Node) это же делает `http-transport.ts`. Замена на WebTransport-реализация
 // = смена провайдера в `app.config.ts`; код выше не трогается.
+//
+// core/*-слой: общие транспортные швы приложения (не принадлежит плагину `auth`).
 
 import { InjectionToken, inject } from '@angular/core';
 import type { ITransport } from './transport';
-import { authLog } from './auth-logger';
+import { appLog } from '../log/logger';
 
-/** DI-токен для EnvelopeCodec (SEAM). */
-export const ENVELOPE_CODEC = new InjectionToken<never>('AWP_ENVELOPE_CODEC');
+const log = appLog('transport');
 
 /** DI-токен для ITransport (SEAM). */
 export const ITRANSPORT = new InjectionToken<ITransport>('AWP_ITRANSPORT');
 
 /**
- * HTTP-реализация: единственный «шов», через который весь бизнес-запросы
- * фронте ходит в бек.
+ * HTTP-реализация: единственный «шов», через который все бизнес-запросы
+ * фронте ходят в бек.
  *
  * - `base` — URL endpoint'а (dev: `http://127.0.0.1:8443/v1/exchange`).
  * - `timeout` — дефолт 15 с (auth — мгновенные, но не бесконечно).
@@ -44,11 +45,12 @@ export class HttpTransport implements ITransport {
       });
       if (!res.ok) {
         const text = await res.text().catch(() => '');
+        log.warn('http-error', { status: res.status, body: text.slice(0, 200) });
         throw new Error(`HTTP ${res.status} ${text}`);
       }
       const buf = await res.arrayBuffer();
       const dt = Date.now() - t0;
-      authLog.debug('transport', { status: res.status, bytes: bytes.byteLength, ms: dt });
+      log.debug('dispatch', { status: res.status, bytes: bytes.byteLength, ms: dt });
       return new Uint8Array(buf);
     } finally {
       clearTimeout(timer);
@@ -56,7 +58,7 @@ export class HttpTransport implements ITransport {
   }
 }
 
-/** Проводник: из DI-провайдера достаёт ITransport. */
+/** Проводник: из DI достаёт ITransport (унифицированный способ потребления SEAM). */
 export function injectTransport(): ITransport {
   return inject(ITRANSPORT);
 }

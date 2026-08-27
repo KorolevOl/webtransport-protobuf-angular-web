@@ -6,11 +6,11 @@
 
 import type { Provider } from '@angular/core';
 
-import { ITRANSPORT, HttpTransport } from './transport-http';
-import { SessionTokenStore, TOKEN_STORE } from './token-store';
+import { ITRANSPORT, HttpTransport } from '../../core/transport/transport-http';
+import { SessionTokenStore, TOKEN_STORE } from '../../core/session/token-store';
+import { appLog, setLogLevel } from '../../core/log/logger';
 import { AuthService } from './auth.service';
 import { AuthState } from './auth.state';
-import { authLog } from './auth-logger';
 
 export interface AuthPluginConfig {
   /** Базовый URL бэка (dev: http://127.0.0.1:8443/v1/exchange). */
@@ -22,8 +22,8 @@ export interface AuthPluginConfig {
 }
 
 export function provideAuthPlugin(config: AuthPluginConfig): Provider[] {
-  authLog.setLevel(config.logLevel ?? 'info');
-  authLog.info('plugin:boot', {
+  setLogLevel(config.logLevel ?? 'info');
+  appLog('auth').info('plugin:boot', {
     base: config.base,
     timeoutMs: config.timeoutMs ?? 15000,
     transport: 'http/envelope',

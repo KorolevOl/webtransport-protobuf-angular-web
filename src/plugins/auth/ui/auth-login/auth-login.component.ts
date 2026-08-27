@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { email, form, FormField, maxLength, minLength, required, type FieldTree } from '@angular/forms/signals';
-import { AuthError, AuthService } from './auth.service';
+import { AuthError, AuthService } from '../../auth.service';
 
 interface LoginModel { email: string; password: string; }
 
@@ -9,7 +9,7 @@ interface LoginModel { email: string; password: string; }
   selector: 'auth-login',
   imports: [RouterLink, FormField],
   templateUrl: './auth-login.html',
-  styleUrl: './auth-form.scss'
+  styleUrl: '../auth-form.scss'
 })
 export class AuthLoginComponent {
   private readonly auth = inject(AuthService);

@@ -9,9 +9,9 @@ import { Routes, Router } from '@angular/router';
 import type { CanActivateFn } from '@angular/router';
 
 import { AuthService } from './auth.service';
-import { AuthLoginComponent } from './auth-login.component';
-import { AuthRegisterComponent } from './auth-register.component';
-import { HomeComponent } from './home.component';
+import { AuthLoginComponent } from './ui/auth-login/auth-login.component';
+import { AuthRegisterComponent } from './ui/auth-register/auth-register.component';
+import { HomeComponent } from './ui/home/home.component';
 
 const REDIRECT_KEY = 'awp.redirect.to';
 
