@@ -1,24 +1,39 @@
-// request-schemas.ts — base -> <Base>Request schema registry (core shared).
-import type { DescMessage, MessageInitShape } from '@bufbuild/protobuf';
-import {
-  LoginRequestSchema,
-  RegisterRequestSchema,
-  RefreshRequestSchema,
-  LogoutRequestSchema,
-} from '../../proto-generated/index';
+// request-schemas.ts — base → <Base>Request runtime-дескриптор (core shared).
+//
+// АВТО-ПРОИЗВОДСТВО из сгенерированного oneof (EnvelopeSchema.oneofs):
+// ноль ручного обслуживания. Новый домен в .proto → `npm run proto:gen` →
+// модуль просто работает (каждое поле oneof несёт в себе DescMessage).
+//
+// Тип-уровень (IDE-подсказки по полям init) — RequestInitOf<B> из
+// envelope-types.ts (Partial<тип сообщения> — имена/типы из .proto).
+
+import type { DescMessage } from '@bufbuild/protobuf';
+import { EnvelopeSchema } from '../../proto-generated/index';
 import type { RequestBase } from './envelope-types';
 
-// satisfies = exhaustiveness: new base in proto (next domain) without a
-// schema here fails tsc — the plugin must wire its request into the map.
-export const REQUEST_SCHEMAS = {
-  login: LoginRequestSchema,
-  register: RegisterRequestSchema,
-  refresh: RefreshRequestSchema,
-  logout: LogoutRequestSchema,
-} satisfies Record<RequestBase, DescMessage>;
+/**
+ * Сборка карты «base → <Base>Request descriptor» из generated oneof.
+ * Критерий: поле-мессендж, localName заканчивается на «Request».
+ * (Правило пар из proto/AGENTS.md гарантирует, что такие поля — ровно
+ * операции; `Response`-поля отфильтрованы суффиксом.)
+ */
+function deriveFromOneof(): Record<string, DescMessage> {
+  const map: Record<string, DescMessage> = {};
+  for (const oneof of EnvelopeSchema.oneofs) {
+    for (const field of oneof.fields) {
+      const name = field.localName;
+      if (field.message !== undefined && name.endsWith('Request')) {
+        map[name.slice(0, -'Request'.length)] = field.message;
+      }
+    }
+  }
+  return map;
+}
 
-/** Schema (Desc) of the request message for base B. */
-export type RequestSchemaOf<B extends RequestBase> = (typeof REQUEST_SCHEMAS)[B];
-
-/** Plain init object accepted by `create` / `EnvelopeClient.call` for base B. */
-export type RequestInitOf<B extends RequestBase> = MessageInitShape<RequestSchemaOf<B>>;
+/**
+ * Единый runtime-реестр base → схема `<Base>Request`.
+ * Построен один раз при загрузке; покрывает ВСЕ base из oneof
+ * (RequestBase выведен из того же oneof — расхождения невозможны).
+ */
+export const REQUEST_SCHEMAS: Record<RequestBase, DescMessage> =
+  deriveFromOneof() as Record<RequestBase, DescMessage>;

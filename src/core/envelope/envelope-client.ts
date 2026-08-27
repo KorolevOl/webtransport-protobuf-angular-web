@@ -27,9 +27,8 @@ import { EnvelopeSchema, type Envelope } from '../../proto-generated/index';
 import type { EnvelopeCodec } from '../codec/envelope-codec';
 import type { ITransport } from '../transport/transport';
 import { appLog } from '../log/logger';
-import type { EnvelopeCase, RequestBase, ResponseTypeOf } from './envelope-types';
+import type { EnvelopeCase, RequestBase, RequestInitOf, ResponseTypeOf } from './envelope-types';
 import { REQUEST_SCHEMAS } from './request-schemas';
-import type { RequestInitOf } from './request-schemas';
 
 const log = appLog('envelope');
 
@@ -61,7 +60,13 @@ export class EnvelopeClient {
     const requestCase = `${base}Request` as EnvelopeCase;
     const responseCase = `${base}Response` as EnvelopeCase;
     const t0 = Date.now();
-    const message = pbCreate(REQUEST_SCHEMAS[base], init);
+    // Мост (единственный cast в core/): runtime-карта хранит widened
+    // DescMessage, а MessageInitShape<конкретная схема> — deferred-тип,
+    // неразрешимый для общего ключа. Публичный init уже верифицирован
+    // сигнатурой call() — здесь только граница «типизированный вход →
+    // динамический desc».
+    const desc = REQUEST_SCHEMAS[base];
+    const message = pbCreate(desc, (init ?? {}) as never);
 
     const env = pbCreate(EnvelopeSchema, {
       messageId: messageId(),

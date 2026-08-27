@@ -50,5 +50,12 @@ export type RequestBase = {
 /** Тип сообщения запроса `${B}Request`. */
 export type RequestTypeOf<B extends RequestBase> = EnvelopeValueOf<RequestCaseOf[B]>;
 
+/**
+ * Форма init-объекта для запроса `${B}Request`: все поля опциональны.
+ * Выводится из сгенерированного типа сообщения — имена/типы строго те,
+ * что в .proto; IDE подсказывает корректные поля для выбранного base.
+ */
+export type RequestInitOf<B extends RequestBase> = Partial<RequestTypeOf<B>>;
+
 /** Тип сообщения ответа `${B}Response`. */
 export type ResponseTypeOf<B extends RequestBase> = EnvelopeValueOf<ResponseCaseOf[B]>;
