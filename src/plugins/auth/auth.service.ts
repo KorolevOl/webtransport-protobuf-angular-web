@@ -15,10 +15,6 @@ import {
   LogoutRequestSchema,
   type Envelope,
   type LoginResponse,
-  type RegisterResponse,
-  type RefreshResponse,
-  type LogoutResponse,
-  type AuthSession,
   AuthErrorCode,
 } from '../../proto-generated/index';
 
@@ -31,6 +27,24 @@ import { TOKEN_STORE } from '../../core/session/token-store';
 import { AuthState } from './auth.state';
 
 const log = appLog('auth');
+
+// --- Типы один от proto-контракта (не «вручную» из памяти) ---
+//
+// Envelope.payload — дискриминированный union по `case` (codegen v2, oneof):
+//   { case: 'loginRequest'; value: LoginRequest } | { case: 'loginResponse'; ... } | ...
+// Отсюда выводим ВСЮ номенклатуру кейсов и тип сообщения для каждого кейса —
+// IDE будет подсказывать только валидные literals из .proto (при добавлении
+// кейса в proto+regen список расширяется автоматически, без правки этого файла).
+
+/** Все валидные кейсы Envelope.payload (без unset-варианта `case: undefined`). */
+export type EnvelopeCase = Exclude<Envelope['payload']['case'], undefined>;
+
+/** Тип сообщения, лежащего под кейсом C. Выводится из union без перечисления. */
+export type EnvelopeValueOf<C extends EnvelopeCase> =
+  Extract<Envelope['payload'], { case: C }>['value'];
+
+/** Форма oneof-исхода ответов (session | error | unset) — берётся прямо из proto-типа. */
+type SessionOutcome = LoginResponse['outcome'];
 
 function messageId(): string {
   return 'web-' + Math.random().toString(36).slice(2, 10);
@@ -92,7 +106,7 @@ export class AuthService {
     log.info('login', { email });
     const payload = pbCreate(LoginRequestSchema, { email, password });
     const resp = await this.dispatch(payload, 'loginRequest');
-    const result = this.expectCase<LoginResponse>(resp, 'loginResponse', 'login');
+    const result = this.expectCase(resp, 'loginResponse', 'login');
     return this.applySession(result.outcome, 'login', email);
   }
 
@@ -100,7 +114,7 @@ export class AuthService {
     log.info('register', { email });
     const payload = pbCreate(RegisterRequestSchema, { email, password, displayName });
     const resp = await this.dispatch(payload, 'registerRequest');
-    const result = this.expectCase<RegisterResponse>(resp, 'registerResponse', 'register');
+    const result = this.expectCase(resp, 'registerResponse', 'register');
     return this.applySession(result.outcome, 'register', email);
   }
 
@@ -110,7 +124,7 @@ export class AuthService {
     log.info('refresh', { had_refresh_token: !!s.tokens.refreshToken });
     const payload = pbCreate(RefreshRequestSchema, { refreshToken: s.tokens.refreshToken });
     const resp = await this.dispatch(payload, 'refreshRequest');
-    const result = this.expectCase<RefreshResponse>(resp, 'refreshResponse', 'refresh');
+    const result = this.expectCase(resp, 'refreshResponse', 'refresh');
     if (result.outcome.case === 'error') throw this.serverError(result.outcome.value);
     if (result.outcome.case !== 'tokens') throw new Error('refresh: unexpected outcome case');
     const t = result.outcome.value;
@@ -137,7 +151,7 @@ export class AuthService {
     try {
       const payload = pbCreate(LogoutRequestSchema, { refreshToken: s.tokens.refreshToken });
       const resp = await this.dispatch(payload, 'logoutRequest');
-      const result = this.expectCase<LogoutResponse>(resp, 'logoutResponse', 'logout');
+      const result = this.expectCase(resp, 'logoutResponse', 'logout');
       if (result.outcome.case === 'error') {
         log.warn('logout: server reported error, но сессию снимаю локально', result.outcome.value);
       }
@@ -150,14 +164,23 @@ export class AuthService {
 
   // --- внутреннее ---
 
-  private dispatch(message: { $typeName: string }, caseName: string): Promise<Envelope> {
+  /**
+   * Собрать Envelope с payload `{case: C, value: M}`, отправить, вернуть
+   * декодированный Envelope. Generic: C ограничен валидными кейсами proto
+   * (IDE подсказывает), M ограничен типом сообщения для C (IDE не даст
+   * спарить чужое сообщение с кейсом).
+   */
+  private dispatch<C extends EnvelopeCase>(
+    message: EnvelopeValueOf<C>,
+    caseName: C,
+  ): Promise<Envelope> {
     const t0 = Date.now();
     const env = pbCreate(EnvelopeSchema, {
       messageId: messageId(),
       sentAt: timestampNow(),
       protocolVersion: 1,
       payload: { case: caseName, value: message } as Envelope['payload'],
-    }) as Envelope;
+    });
     const bytes = this.codec.encode(env);
     return this.transport.dispatchEnvelope(bytes).then((raw) => {
       log.debug('dispatch', { case: caseName, ms: Date.now() - t0, bytes: bytes.byteLength });
@@ -165,21 +188,24 @@ export class AuthService {
     });
   }
 
-  private expectCase<T>(env: Envelope, expected: string, op: string): T {
+  /**
+   * Проверить, что сервер ответил именно кейсом C, и вернуть типизированное
+   * сообщение под ним (EnvelopeValueOf<C> — выводится из oneof контракта).
+   */
+  private expectCase<C extends EnvelopeCase>(env: Envelope, expected: C, op: string): EnvelopeValueOf<C> {
     if (env.payload.case !== expected) {
       log.error(`${op}: unexpected case`, { got: env.payload.case, expected });
       throw new Error(`expected ${expected}, got ${env.payload.case}`);
     }
-    return env.payload.value as T;
+    return env.payload.value as EnvelopeValueOf<C>;
   }
 
-  private applySession(outcome: { case: string | undefined; value?: unknown }, op: string, email: string): AuthSessionLocal {
+  private applySession(outcome: SessionOutcome, op: string, email: string): AuthSessionLocal {
     if (outcome.case === 'error') {
-      const err = outcome.value as { code: AuthErrorCode; message: string };
-      throw this.serverError(err);
+      throw this.serverError(outcome.value);
     }
     if (outcome.case !== 'session') throw new Error(`${op}: unexpected outcome case`);
-    const session = outcome.value as AuthSession;
+    const session = outcome.value;
     const tokens = session.tokens;
     if (!tokens) throw new Error(`session missing tokens (${op})`);
     const next: TokenPair = { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken };
