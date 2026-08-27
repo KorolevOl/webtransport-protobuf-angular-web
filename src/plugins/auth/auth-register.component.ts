@@ -9,7 +9,7 @@ interface RegisterModel { email: string; password: string; displayName: string; 
   selector: 'auth-register',
   imports: [RouterLink, FormField],
   templateUrl: './auth-register.html',
-  styleUrl: './auth-form.css'
+  styleUrl: './auth-form.scss'
 })
 export class AuthRegisterComponent {
   private readonly auth = inject(AuthService);

@@ -9,7 +9,7 @@ interface LoginModel { email: string; password: string; }
   selector: 'auth-login',
   imports: [RouterLink, FormField],
   templateUrl: './auth-login.html',
-  styleUrl: './auth-form.css'
+  styleUrl: './auth-form.scss'
 })
 export class AuthLoginComponent {
   private readonly auth = inject(AuthService);
