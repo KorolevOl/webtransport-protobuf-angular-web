@@ -2,19 +2,17 @@
 //
 // ОДИН носитель деталей транспорта (SEAM, корневая §1): компоненты знают только
 // этот сервис (login/register/refresh/logout), не про то, как байты летят.
+// Механика Envelope (обёртка → транспорт → проверка пары) — в core/EnvelopeClient;
+// здесь только auth-бизнес (исходы: session|error, хранение токенов, AuthState).
 // Смена транспорта (HTTP → WebTransport) = смена провайдера ITRANSPORT.
 
 import { Injectable, inject } from '@angular/core';
 import { create as pbCreate } from '@bufbuild/protobuf';
-import { timestampNow } from '@bufbuild/protobuf/wkt';
 import {
-  EnvelopeSchema,
   LoginRequestSchema,
   RegisterRequestSchema,
   RefreshRequestSchema,
   LogoutRequestSchema,
-  type Envelope,
-  type LoginResponse,
   AuthErrorCode,
 } from '../../proto-generated/index';
 
@@ -24,31 +22,20 @@ import { ITRANSPORT } from '../../core/transport/transport-http';
 import { appLog } from '../../core/log/logger';
 import type { TokenPair, ITokenStore } from '../../core/session/token-store';
 import { TOKEN_STORE } from '../../core/session/token-store';
+import { EnvelopeClient } from '../../core/envelope/envelope-client';
+import type { ResponseTypeOf } from '../../core/envelope/envelope-types';
 import { AuthState } from './auth.state';
 
 const log = appLog('auth');
 
-// --- Типы один от proto-контракта (не «вручную» из памяти) ---
-//
-// Envelope.payload — дискриминированный union по `case` (codegen v2, oneof):
-//   { case: 'loginRequest'; value: LoginRequest } | { case: 'loginResponse'; ... } | ...
-// Отсюда выводим ВСЮ номенклатуру кейсов и тип сообщения для каждого кейса —
-// IDE будет подсказывать только валидные literals из .proto (при добавлении
-// кейса в proto+regen список расширяется автоматически, без правки этого файла).
-
-/** Все валидные кейсы Envelope.payload (без unset-варианта `case: undefined`). */
-export type EnvelopeCase = Exclude<Envelope['payload']['case'], undefined>;
-
-/** Тип сообщения, лежащего под кейсом C. Выводится из union без перечисления. */
-export type EnvelopeValueOf<C extends EnvelopeCase> =
-  Extract<Envelope['payload'], { case: C }>['value'];
-
-/** Форма oneof-исхода ответов (session | error | unset) — берётся прямо из proto-типа. */
-type SessionOutcome = LoginResponse['outcome'];
-
-function messageId(): string {
-  return 'web-' + Math.random().toString(36).slice(2, 10);
-}
+/**
+ * Форма oneof-исхода (session | error | tokens) — объединение union'ов всех
+ * «ответов сессии» (login/register — session|error, refresh — session|
+ * tokens|error), выводится из proto oneof без ручного перечисления.
+ */
+type SessionOutcome =
+  | ResponseTypeOf<'login'>['outcome']
+  | ResponseTypeOf<'refresh'>['outcome'];
 
 /** Исключение «ошибка от сервера» (payload.outcome.error). */
 export class AuthError extends Error {
@@ -58,14 +45,6 @@ export class AuthError extends Error {
   ) {
     super(`[auth/${code}] ${message}`);
     this.name = 'AuthError';
-  }
-}
-
-/** Исключение «транспорт» (сеть/таймаут/не-200). */
-export class TransportError extends Error {
-  constructor(message: string) {
-    super(`[transport] ${message}`);
-    this.name = 'TransportError';
   }
 }
 
@@ -83,6 +62,8 @@ export class AuthService {
   private readonly store: ITokenStore = inject(TOKEN_STORE);
   private readonly state = inject(AuthState);
   private readonly codec = protoEnvelopeCodec;
+  /** Единая обёртка Envelope-операций (base → <base>Request/<base>Response). */
+  private readonly client = new EnvelopeClient(this.codec, this.transport);
 
   // Сессия живёт ТОЛЬКО в AuthState (signals, единый источник правды).
   private get session(): AuthSessionLocal | null {
@@ -104,17 +85,15 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<AuthSessionLocal> {
     log.info('login', { email });
-    const payload = pbCreate(LoginRequestSchema, { email, password });
-    const resp = await this.dispatch(payload, 'loginRequest');
-    const result = this.expectCase(resp, 'loginResponse', 'login');
+    const request = pbCreate(LoginRequestSchema, { email, password });
+    const result = await this.client.call('login', request);
     return this.applySession(result.outcome, 'login', email);
   }
 
   async register(email: string, password: string, displayName: string): Promise<AuthSessionLocal> {
     log.info('register', { email });
-    const payload = pbCreate(RegisterRequestSchema, { email, password, displayName });
-    const resp = await this.dispatch(payload, 'registerRequest');
-    const result = this.expectCase(resp, 'registerResponse', 'register');
+    const request = pbCreate(RegisterRequestSchema, { email, password, displayName });
+    const result = await this.client.call('register', request);
     return this.applySession(result.outcome, 'register', email);
   }
 
@@ -122,9 +101,8 @@ export class AuthService {
     const s = this.session;
     if (!s) return null;
     log.info('refresh', { had_refresh_token: !!s.tokens.refreshToken });
-    const payload = pbCreate(RefreshRequestSchema, { refreshToken: s.tokens.refreshToken });
-    const resp = await this.dispatch(payload, 'refreshRequest');
-    const result = this.expectCase(resp, 'refreshResponse', 'refresh');
+    const request = pbCreate(RefreshRequestSchema, { refreshToken: s.tokens.refreshToken });
+    const result = await this.client.call('refresh', request);
     if (result.outcome.case === 'error') throw this.serverError(result.outcome.value);
     if (result.outcome.case !== 'tokens') throw new Error('refresh: unexpected outcome case');
     const t = result.outcome.value;
@@ -149,9 +127,8 @@ export class AuthService {
     }
     log.info('logout', { email: s.email });
     try {
-      const payload = pbCreate(LogoutRequestSchema, { refreshToken: s.tokens.refreshToken });
-      const resp = await this.dispatch(payload, 'logoutRequest');
-      const result = this.expectCase(resp, 'logoutResponse', 'logout');
+      const request = pbCreate(LogoutRequestSchema, { refreshToken: s.tokens.refreshToken });
+      const result = await this.client.call('logout', request);
       if (result.outcome.case === 'error') {
         log.warn('logout: server reported error, но сессию снимаю локально', result.outcome.value);
       }
@@ -162,43 +139,7 @@ export class AuthService {
     this.session = null;
   }
 
-  // --- внутреннее ---
-
-  /**
-   * Собрать Envelope с payload `{case: C, value: M}`, отправить, вернуть
-   * декодированный Envelope. Generic: C ограничен валидными кейсами proto
-   * (IDE подсказывает), M ограничен типом сообщения для C (IDE не даст
-   * спарить чужое сообщение с кейсом).
-   */
-  private dispatch<C extends EnvelopeCase>(
-    message: EnvelopeValueOf<C>,
-    caseName: C,
-  ): Promise<Envelope> {
-    const t0 = Date.now();
-    const env = pbCreate(EnvelopeSchema, {
-      messageId: messageId(),
-      sentAt: timestampNow(),
-      protocolVersion: 1,
-      payload: { case: caseName, value: message } as Envelope['payload'],
-    });
-    const bytes = this.codec.encode(env);
-    return this.transport.dispatchEnvelope(bytes).then((raw) => {
-      log.debug('dispatch', { case: caseName, ms: Date.now() - t0, bytes: bytes.byteLength });
-      return this.codec.decode(raw);
-    });
-  }
-
-  /**
-   * Проверить, что сервер ответил именно кейсом C, и вернуть типизированное
-   * сообщение под ним (EnvelopeValueOf<C> — выводится из oneof контракта).
-   */
-  private expectCase<C extends EnvelopeCase>(env: Envelope, expected: C, op: string): EnvelopeValueOf<C> {
-    if (env.payload.case !== expected) {
-      log.error(`${op}: unexpected case`, { got: env.payload.case, expected });
-      throw new Error(`expected ${expected}, got ${env.payload.case}`);
-    }
-    return env.payload.value as EnvelopeValueOf<C>;
-  }
+  // --- внутреннее (auth-бизнес) ---
 
   private applySession(outcome: SessionOutcome, op: string, email: string): AuthSessionLocal {
     if (outcome.case === 'error') {
