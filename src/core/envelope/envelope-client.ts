@@ -2,7 +2,8 @@
 //
 // Правило контракта (зафиксировано в proto/AGENTS.md + envelope.proto):
 // каждая операция = пара `<Base>Request` / `<Base>Response` с общим префиксом.
-// `call('refresh', refreshRequestMsg)` сам достаёт:
+// `call('refresh', { refreshToken: … })` сам:
+//   • строит сообщение `<base>Request` (pbCreate со схемой из REQUEST_SCHEMAS),
 //   • для отправки  — кейс `refreshRequest`  (base + 'Request'),
 //   • для проверки  — кейс `refreshResponse` (base + 'Response'),
 // и возвращает ТОЛЬКО типизированное сообщение ответа:
@@ -10,13 +11,15 @@
 //   — в том, что промис разрешился (нет throw = сервер ответил парно).
 //
 // Типы НЕ перечислены — выводятся из oneof Envelope.payload (envelope-types.ts):
-// IDE подсказывает валидные base ('login' | 'register' | 'refresh' | 'logout'),
-// чужой base / чужой payload отклоняются на этапе компиляции (no any, §5).
+// IDE подсказывает валидные base ('login' | 'register' | 'refresh' | 'logout')
+// и поля запроса для выбранного base; чужой base / чужой payload отклоняются
+// на этапе компиляции (no any, §5).
 //
 // Это ядро Envelope-транспорта, переиспользуемое ЛЮБЫМ плагином (кор. §7:
-// shared → core). Бизнес-код пишет `client.call(<base>, <*Request>)`;
-// детали (обёртка в Envelope, encode/decode, транспорт, проверка пары) здесь.
-// Смена транспорта — замена реализации ITRANSPORT (SEAM, кор. §1/§7).
+// shared → core). Бизнес-код пишет ОДНУ строку:
+//   client.call('refresh', { refreshToken })
+// детали (создание запроса, обёртка в Envelope, encode/decode, транспорт,
+// проверка пары) — здесь. Смена транспорта — замена ITRANSPORT (SEAM, §1/§7).
 
 import { create as pbCreate } from '@bufbuild/protobuf';
 import { timestampNow } from '@bufbuild/protobuf/wkt';
@@ -24,7 +27,9 @@ import { EnvelopeSchema, type Envelope } from '../../proto-generated/index';
 import type { EnvelopeCodec } from '../codec/envelope-codec';
 import type { ITransport } from '../transport/transport';
 import { appLog } from '../log/logger';
-import type { EnvelopeCase, RequestBase, RequestTypeOf, ResponseTypeOf } from './envelope-types';
+import type { EnvelopeCase, RequestBase, ResponseTypeOf } from './envelope-types';
+import { REQUEST_SCHEMAS } from './request-schemas';
+import type { RequestInitOf } from './request-schemas';
 
 const log = appLog('envelope');
 
@@ -40,20 +45,32 @@ export class EnvelopeClient {
 
   /**
    * Выполнить операцию `base` (например `'refresh'`):
-   * отправить `<base>Request` внутри Envelope, дождаться `<base>Response`,
-   * вернуть типизированное сообщение ответа `ResponseTypeOf<B>`.
+   * построить и отправить `<base>Request` внутри Envelope, дождаться
+   * `<base>Response`, вернуть типизированное сообщение ответа.
+   *
+   * `pbCreate` + проверка пары скрыты внутри: вызывающий пишет ОДНУ строку —
+   * `client.call('refresh', { refreshToken })` — без ручного создания
+   * запроса и без `expectCase`.
    *
    * Бросает Error, если сервер ответил другим кейсом (нарушение пары).
    *
-   * @param base    имя операции, без суффиксов: 'login' | 'register' | 'refresh' | 'logout'
-   * @param message сообщение запроса `<base>Request`
+   * @param base   имя операции, без суффиксов: 'login' | 'register' | 'refresh' | 'logout'
+   * @param init   обычный объект-инициализация `<base>Request` (поля опциональны)
    */
-  private async run<B extends RequestBase>(
-    base: B,
-    responseCase: EnvelopeCase,
-    t0: number,
-    bytes: Uint8Array,
-  ): Promise<ResponseTypeOf<B>> {
+  async call<B extends RequestBase>(base: B, init?: RequestInitOf<B>): Promise<ResponseTypeOf<B>> {
+    const requestCase = `${base}Request` as EnvelopeCase;
+    const responseCase = `${base}Response` as EnvelopeCase;
+    const t0 = Date.now();
+    const message = pbCreate(REQUEST_SCHEMAS[base], init);
+
+    const env = pbCreate(EnvelopeSchema, {
+      messageId: messageId(),
+      sentAt: timestampNow(),
+      protocolVersion: 1,
+      payload: { case: requestCase, value: message } as Envelope['payload'],
+    });
+    const bytes = this.codec.encode(env);
+
     try {
       const raw = await this.transport.dispatchEnvelope(bytes);
       const resp = this.codec.decode(raw);
@@ -65,22 +82,5 @@ export class EnvelopeClient {
     } finally {
       log.debug('call', { base, ms: Date.now() - t0, bytes: bytes.byteLength });
     }
-  }
-
-  /** Публичный API: базовая строка + сообщение запроса → типизированное сообщение ответа. */
-  call<B extends RequestBase>(base: B, message: RequestTypeOf<B>): Promise<ResponseTypeOf<B>> {
-    const requestCase = `${base}Request` as EnvelopeCase;
-    const responseCase = `${base}Response` as EnvelopeCase;
-    const t0 = Date.now();
-
-    const env = pbCreate(EnvelopeSchema, {
-      messageId: messageId(),
-      sentAt: timestampNow(),
-      protocolVersion: 1,
-      payload: { case: requestCase, value: message } as Envelope['payload'],
-    });
-    const bytes = this.codec.encode(env);
-
-    return this.run(base, responseCase, t0, bytes);
   }
 }

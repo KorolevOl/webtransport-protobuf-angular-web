@@ -7,14 +7,7 @@
 // Смена транспорта (HTTP → WebTransport) = смена провайдера ITRANSPORT.
 
 import { Injectable, inject } from '@angular/core';
-import { create as pbCreate } from '@bufbuild/protobuf';
-import {
-  LoginRequestSchema,
-  RegisterRequestSchema,
-  RefreshRequestSchema,
-  LogoutRequestSchema,
-  AuthErrorCode,
-} from '../../proto-generated/index';
+import { AuthErrorCode } from '../../proto-generated/index';
 
 import { protoEnvelopeCodec } from '../../core/codec/envelope-codec';
 import type { ITransport } from '../../core/transport/transport';
@@ -85,15 +78,13 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<AuthSessionLocal> {
     log.info('login', { email });
-    const request = pbCreate(LoginRequestSchema, { email, password });
-    const result = await this.client.call('login', request);
+    const result = await this.client.call('login', { email, password });
     return this.applySession(result.outcome, 'login', email);
   }
 
   async register(email: string, password: string, displayName: string): Promise<AuthSessionLocal> {
     log.info('register', { email });
-    const request = pbCreate(RegisterRequestSchema, { email, password, displayName });
-    const result = await this.client.call('register', request);
+    const result = await this.client.call('register', { email, password, displayName });
     return this.applySession(result.outcome, 'register', email);
   }
 
@@ -101,8 +92,7 @@ export class AuthService {
     const s = this.session;
     if (!s) return null;
     log.info('refresh', { had_refresh_token: !!s.tokens.refreshToken });
-    const request = pbCreate(RefreshRequestSchema, { refreshToken: s.tokens.refreshToken });
-    const result = await this.client.call('refresh', request);
+    const result = await this.client.call('refresh', { refreshToken: s.tokens.refreshToken });
     if (result.outcome.case === 'error') throw this.serverError(result.outcome.value);
     if (result.outcome.case !== 'tokens') throw new Error('refresh: unexpected outcome case');
     const t = result.outcome.value;
@@ -127,8 +117,7 @@ export class AuthService {
     }
     log.info('logout', { email: s.email });
     try {
-      const request = pbCreate(LogoutRequestSchema, { refreshToken: s.tokens.refreshToken });
-      const result = await this.client.call('logout', request);
+      const result = await this.client.call('logout', { refreshToken: s.tokens.refreshToken });
       if (result.outcome.case === 'error') {
         log.warn('logout: server reported error, но сессию снимаю локально', result.outcome.value);
       }
