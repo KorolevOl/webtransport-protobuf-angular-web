@@ -1,7 +1,7 @@
 // =============================================================================
 // common/v1/envelope.proto — единственная wire-формула (v1)
 //
-// Envelope — единственный тип, который летает между web/ и server/.
+// Envelope — единственный тип, который летает между webtransport-protobuf-angular-web/ и webtransport-protobuf-nodejs-server/.
 // Внутрь — oneof payload: каждое известное сообщение (домены: auth.v1, ...).
 //
 // Принципы:
@@ -69,7 +69,7 @@ export type Envelope = Message<"common.v1.Envelope"> & {
   sentAt?: Timestamp | undefined;
 
   /**
-   * Версия контракта, которой говорит sender (см. proto/PROTOCOL.md §7).
+   * Версия контракта, которой говорит sender (см. webtransport-protobuf-proto/PROTOCOL.md §7).
    * 1 = v1. Используется для логирования и future-совместимости;
    * не для выбора wire-формата (format задаётся самим протоколом).
    *

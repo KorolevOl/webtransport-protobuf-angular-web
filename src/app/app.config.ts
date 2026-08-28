@@ -6,7 +6,7 @@
 // Выбор транспорта (SEAM, корневая §7 «плагинная модульность»):
 //   • `kind: 'http'`         — браузер fetch → Node:8443 (POST /v1/exchange).
 //   • `kind: 'webtransport'` — браузер → Go edge (QUIC/H3) → Node (4B BE length + Envelope).
-//     Обязателен (Chromium): pinSha256Hex = SHA-256(leaf-short/ DER-серт) — см. certs/README.md ⭐.
+//     Обязателен (Chromium): pinSha256Hex = SHA-256(leaf-short/ DER-серт) — см. webtransport-protobuf-certs/README.md ⭐.
 //     URL — IPv4-литерал (`127.0.0.1`), не `localhost`.
 //
 // URL бэка — одна из «настроек среды»: dev `http://127.0.0.1:8443` /
@@ -20,9 +20,9 @@ import { routes } from './app.routes';
 import { provideAuthPlugin } from '../plugins/auth/auth.plugin';
 
 /**
- * SHA-256 от DER-сертификата `certs/leaf-short/leaf.pem` (короткий ECDSA P-256,
- * 5 дней; SAN `DNS:localhost, IP:127.0.0.1`; подписан `certs/ca/ca.pem`).
- * Обновлять вместе с leaf-short/ (см. certs/README.md «Переиздание»).
+ * SHA-256 от DER-сертификата `webtransport-protobuf-certs/leaf-short/leaf.pem` (короткий ECDSA P-256,
+ * 5 дней; SAN `DNS:localhost, IP:127.0.0.1`; подписан `webtransport-protobuf-certs/ca/ca.pem`).
+ * Обновлять вместе с leaf-short/ (см. webtransport-protobuf-certs/README.md «Переиздание»).
  */
 const LEAF_SHORT_SHA256_HEX = 'e5ccd324bfe0c1072d4475bd43504195d37aad9595ddd33262ce574f3d18a150';
 

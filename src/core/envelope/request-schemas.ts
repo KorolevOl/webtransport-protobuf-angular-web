@@ -14,7 +14,7 @@ import type { RequestBase } from './envelope-types';
 /**
  * Сборка карты «base → <Base>Request descriptor» из generated oneof.
  * Критерий: поле-мессендж, localName заканчивается на «Request».
- * (Правило пар из proto/AGENTS.md гарантирует, что такие поля — ровно
+ * (Правило пар из webtransport-protobuf-proto/AGENTS.md гарантирует, что такие поля — ровно
  * операции; `Response`-поля отфильтрованы суффиксом.)
  */
 function deriveFromOneof(): Record<string, DescMessage> {

@@ -1,14 +1,14 @@
 // web-transport-adapter.ts — Реализация ITransport (SEAM) на WebTransport (H3/QUIC).
 //
-// Контекст (корневая AGENTS.md §1 + §5, web/AGENTS.md «WebTransport-клиент (SEAM)»):
+// Контекст (корневая AGENTS.md §1 + §5, webtransport-protobuf-angular-web/AGENTS.md «WebTransport-клиент (SEAM)»):
 //   браузер ⇄ [Go edge: H3/QUIC, ALPN h3] ⇄ локальный TCP ⇄ Node (бизнес).
 // Единственный файл, кто знает про:
 //   • global `WebTransport` API,
 //   • bidi-stream на обмен (1 stream = 1 request → 1 response),
 //   • фрейминг 4B BE length + payload (PROTOCOL.md §2; зеркалит
-//     server/src/plugins/transport-wt-edge/framing.ts и Go edge),
+//     webtransport-protobuf-nodejs-server/src/plugins/transport-wt-edge/framing.ts и Go edge),
 //   • переподключение при мёртвой сессии (корневая §1),
-//   • Chromium-требования (см. certs/README.md ⭐):
+//   • Chromium-требования (см. webtransport-protobuf-certs/README.md ⭐):
 //     (a) `serverCertificateHashes` (pinning) — Chrome WebTransport НЕ читает
 //         CA из Windows trust store;
 //     (b) pinned-certificate — ECDSA P-256 + срок <~14 дней (leaf-short/);
@@ -27,7 +27,7 @@ import { appLog } from '../log/logger';
 
 const log = appLog('transport-wt');
 
-/** Максимальный размер одного фрейма (payload без 4B len) — зеркалит server/§2. */
+/** Максимальный размер одного фрейма (payload без 4B len) — зеркалит webtransport-protobuf-nodejs-server/§2. */
 const MAX_FRAME = 64 * 1024;
 
 /**
@@ -47,7 +47,7 @@ export interface WebTransportAdapterConfig {
   readonly protocols?: readonly string[];
   /**
    * SHA-256 от DER leaf-сертификата в hex (64 hex-символа).
-   * Обязателен для Chromium (serverCertificateHashes); см. certs/README.md ⭐.
+   * Обязателен для Chromium (serverCertificateHashes); см. webtransport-protobuf-certs/README.md ⭐.
    */
   readonly pinSha256Hex?: string;
   /** Таймаут одного обмена (request → response), мс. Дефолт 15 000. */
@@ -212,7 +212,7 @@ export class WebTransportAdapter implements ITransport {
     }
   }
 
-  /** Один обмен: 1 bidi-stream (1 request → 1 response) — зеркалит server/§2 + edge. */
+  /** Один обмен: 1 bidi-stream (1 request → 1 response) — зеркалит webtransport-protobuf-nodejs-server/§2 + edge. */
   private async exchange(wt: WebTransport, bytes: Uint8Array): Promise<Uint8Array> {
     const t0 = performance.now();
     const stream = await wt.createBidirectionalStream();

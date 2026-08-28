@@ -1,6 +1,6 @@
-# AGENTS.md — web/ (репо #2: Angular-приложение)
+# AGENTS.md — webtransport-protobuf-angular-web/ (репо #2: Angular-приложение)
 
-> Правила конкретного подрепо **`web/`**. Общие workspace-правила (стек, окружение
+> Правила конкретного подрепо **`webtransport-protobuf-angular-web/`**. Общие workspace-правила (стек, окружение
 > хоста, общие Guardrails, общие Definition of Done) — в корневом [../AGENTS.md](../AGENTS.md).
 > Приоритет: этот файл + корневой.
 
@@ -43,25 +43,25 @@ runtime-бандл Envelope round-trip — зелёный).
 
 ### Логи
 Общие правила логирования (единый фасад, критичные пути) — в корневом [../AGENTS.md](../AGENTS.md) §7.
-В `web/` кандидат — `@taiga-ui/kit-logging` либо свой тонкий слой.
+В `webtransport-protobuf-angular-web/` кандидат — `@taiga-ui/kit-logging` либо свой тонкий слой.
 
-## Protobuf в `web/`
+## Protobuf в `webtransport-protobuf-angular-web/`
 
 Канон кодогена (protobuf-es, `buf.gen.yaml`, `proto:gen`, зависимости, запрет кодогена
 через `ts-proto`/`protobufjs`) — в корневом [../AGENTS.md](../AGENTS.md) §7. Ниже — только то,
-что специфично для `web/`: путь вывода.
+что специфично для `webtransport-protobuf-angular-web/`: путь вывода.
 
 **Раскладка**:
 ```
-web/
-├── buf.gen.yaml           # v2 — общий с server/, см. корневой §7
+webtransport-protobuf-angular-web/
+├── buf.gen.yaml           # v2 — общий с webtransport-protobuf-nodejs-server/, см. корневой §7
 ├── scripts/
 │  ├── clean-proto.js       # rm -rf src/proto-generated
 │  └── generate-proto-index.js  # баррел index.ts для src/proto-generated
 └── src/proto-generated/    # ВЫВОД — НИКОГДА не редактировать
 ```
 
-> Конфиг `buf.gen.yaml`, скрипт `proto:gen` и зависимости — идентичны `server/`,
+> Конфиг `buf.gen.yaml`, скрипт `proto:gen` и зависимости — идентичны `webtransport-protobuf-nodejs-server/`,
 > канон — в корневом [../AGENTS.md](../AGENTS.md) §7.
 
 ## WebTransport-клиент (SEAM)
@@ -88,7 +88,7 @@ export interface WebTransportClient {
 
 ### Реализация
 Файл: `src/core/transport/web-transport-adapter.ts`.
-**Единственный** код в `web/`, который знает про `WebTransport` (global API), про
+**Единственный** код в `webtransport-protobuf-angular-web/`, который знает про `WebTransport` (global API), про
 streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сериализацию.
 
 Ключевые правила:
@@ -99,7 +99,7 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
   иначе буферизовать + log warn.
 - Reconnect: `onclose` → **один** lifecycle hook — пересоздать `new WebTransport(url)`
   (максимум N попыток + backoff). **Не дублировать** reconnect в других местах.
-- **Фрейминг** байтового потока — только здесь (см. `proto/PROTOCOL.md`).
+- **Фрейминг** байтового потока — только здесь (см. `webtransport-protobuf-proto/PROTOCOL.md`).
 - Сериализация: protobuf-es в adapter (`Greeting.encode()`/`Greeting.decode()`),
   НЕ в компонентах.
 
@@ -119,8 +119,8 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 ## Архитектура: плагинность (своё)
 
 Канон — в корневом [../AGENTS.md](../AGENTS.md) §7 «Архитектура: плагинная модульность».
-Каждый компонент `web/` (фича, сервис, адаптер) — **самостоятельный плагин**: свободно
-**подключается, заменяется, отключается** без правки остального кода. Конкретно в `web/`:
+Каждый компонент `webtransport-protobuf-angular-web/` (фича, сервис, адаптер) — **самостоятельный плагин**: свободно
+**подключается, заменяется, отключается** без правки остального кода. Конкретно в `webtransport-protobuf-angular-web/`:
 - **DI / реестр фич** — компоненты — providers + injectables; фичу подключаешь/отключаешь
   в provider-списке; **прямой import** одной фичи из другой — **запрет** — только контракт/DI.
 - **Адаптер транспорта — сам плагин** (SEAM): `WebTransportClient` (контракт) /
@@ -133,7 +133,7 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 Канон модели взаимодействия (всё через WebTransport, кроме логина/регистрации и
 получения токена) — в корневом [../AGENTS.md](../AGENTS.md) §1 «Модель взаимодействия фрон ↔ бэк».
 
-Что специфично для `web/`:
+Что специфично для `webtransport-protobuf-angular-web/`:
 - **Хранение токена** — `sessionStorage` (не `localStorage` — не переживает закрытие
   вкладки) под отдельным ключом; **один** источник, все чтения через один сервис
   `src/core/auth/token-store.ts` (сигнал `currentToken`).
@@ -145,7 +145,7 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 - **Логин/регистрация** — через `HttpClient` (это единственное, что ходит по обычной
   HTTP, не WebTransport); **после** получения токена все остальные запросы — только
   `WebTransportClient`.
-- **Refresh** — по политикам из `proto/PROTOCOL.md`; в `web/` — отдельный интерцептор
+- **Refresh** — по политикам из `webtransport-protobuf-proto/PROTOCOL.md`; в `webtransport-protobuf-angular-web/` — отдельный интерцептор
   / сервис, **не** размазанный по компонентам.
 
 ## Верификация
@@ -153,14 +153,14 @@ streams, datagrams, backpressure, reconnect, фрейминг и protobuf-сер
 - **Яндекс Browser** (= Chromium) — **первичен**; НЕ `chrome.exe`/`msedge.exe`.
 - CDP `127.0.0.1:9222`, skill `browser-debug`, debug-профиль `browser-harness-profile`.
 - Сценарий: handshake → reliable stream echo → datagram round-trip → close gracefully.
-- Secure context: `https://localhost:9443` (см. [certs/AGENTS.md](../certs/AGENTS.md)), WebTransport доступен.
+- Secure context: `https://localhost:9443` (см. [webtransport-protobuf-certs/AGENTS.md](../webtransport-protobuf-certs/AGENTS.md)), WebTransport доступен.
 
 ## Команды
 
 ```bash
 cd web
 # Proto-pipeline (УЖЕ НА МЕСТЕ: buf.gen.yaml + scripts/ + proto:gen):
-npm run proto:gen     # после изменения proto/ (генерит src/proto-generated/ + баррел)
+npm run proto:gen     # после изменения webtransport-protobuf-proto/ (генерит src/proto-generated/ + баррел)
 npm run clean:proto   # только чистка src/proto-generated/ (без кодогена)
 
 # Dev / build / test:
@@ -176,7 +176,7 @@ npx tsc -p tsconfig.app.json --noEmit
 > `@bufbuild/protoc-gen-es` 2.14.x. Codegen 2.14 = **codegenv2 API**
 > (`type Envelope` + `EnvelopeSchema`, `create()/toBinary()/fromBinary()`),
 > **не** старое `Envelope.encode()/decode()` — см. как в
-> `server/src/codec/envelope-codec.ts`.
+> `webtransport-protobuf-nodejs-server/src/codec/envelope-codec.ts`.
 
 > Точные флаги scaffold и конфиги (`angular.json`, `tsconfig.json`) — сверять с
 > Angular CLI v22 дефолтами. Корневой [../AGENTS.md](../AGENTS.md) §4 — ссылка на корпус документации
@@ -185,7 +185,7 @@ npx tsc -p tsconfig.app.json --noEmit
 ## Guardrails (свои)
 
 - ❌ Не писать `standalone: true` / `OnPush` явно. Не тащить `@angular/animations`.
-- ❌ Не импортировать исходники `server/` или `proto/` — только сгенерированный код из
+- ❌ Не импортировать исходники `webtransport-protobuf-nodejs-server/` или `webtransport-protobuf-proto/` — только сгенерированный код из
   `src/proto-generated/` (вывод кодогена). Правило «не редактировать `src/proto-generated/`»
   — общее, см. корневой [../AGENTS.md](../AGENTS.md) §5/§7.
 - ❌ Не размазывать WebTransport-детали (streams/datagrams/backpressure/reconnect) по
@@ -198,7 +198,7 @@ npx tsc -p tsconfig.app.json --noEmit
   отключается); прямой import одной фичи из другой — запрет. Канон — корневой
   [../AGENTS.md](../AGENTS.md) §7 «Архитектура: плагинная модульность».
 
-## Definition of Done (по `web/`)
+## Definition of Done (по `webtransport-protobuf-angular-web/`)
 
 - [x] `buf.gen.yaml` на месте; `scripts/clean-proto.js` и `scripts/generate-proto-index.js`
       работают; `proto:gen` в `package.json` и даёт `src/proto-generated/*.ts`.
@@ -209,7 +209,7 @@ npx tsc -p tsconfig.app.json --noEmit
       (реализация) / компоненты (потребители) — разделены.
 - [ ] `npm run build` — без ошибок TS (strict, без `any`); `npm run lint` — чисто.
 - [ ] Логирование критичных путей (единый logger-фасад).
-- [ ] TLS: `certs/` сгенерирован, CA импортирован в хранилище Windows,
+- [ ] TLS: `webtransport-protobuf-certs/` сгенерирован, CA импортирован в хранилище Windows,
       `https://localhost:9443` — secure context в браузере.
 - [ ] Верификация транспорта в Яндекс Browser: handshake, reliable stream echo,
       datagram round-trip, graceful close.

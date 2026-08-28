@@ -1,6 +1,6 @@
 // envelope-client.ts — обёртка-метод «один Envelope-запрос → один Envelope-ответ».
 //
-// Правило контракта (зафиксировано в proto/AGENTS.md + envelope.proto):
+// Правило контракта (зафиксировано в webtransport-protobuf-proto/AGENTS.md + envelope.proto):
 // каждая операция = пара `<Base>Request` / `<Base>Response` с общим префиксом.
 // `call('refresh', { refreshToken: … })` сам:
 //   • строит сообщение `<base>Request` (pbCreate со схемой из REQUEST_SCHEMAS),

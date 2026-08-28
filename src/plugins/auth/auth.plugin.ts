@@ -8,7 +8,7 @@
 //   • `http`         — браузер fetch → Node:8443 (POST /v1/exchange, Envelope bytes).
 //   • `webtransport` — браузер → Go edge (QUIC/H3) → Node (4B BE length + Envelope).
 //     Обязателен (Chromium): `pinSha256Hex` (SHA-256 от DER leaf-серта, короткий ECDSA;
-//     см. `certs/README.md` ⭐). URL — IPv4-литерал, не `localhost`.
+//     см. `webtransport-protobuf-certs/README.md` ⭐). URL — IPv4-литерал, не `localhost`.
 
 import type { Provider } from '@angular/core';
 

@@ -5,7 +5,7 @@
 //
 // Правило: `dispatchEnvelope` — метод с единственным входом/выходом (Envelope
 // байты), без «красивых» REST-путей по сторонам. Это та же модель, что у бэка
-// (`server/src/transport/transport.js`).
+// (`webtransport-protobuf-nodejs-server/src/transport/transport.js`).
 //
 // DI-токен `ITRANSPORT` — здесь (в SEAM-файле, не в реализации): любой слой
 // может писать `inject(ITRANSPORT)`, не диктуя, КТО реализует шов
