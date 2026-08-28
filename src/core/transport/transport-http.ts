@@ -4,18 +4,20 @@
 // Это не REST — это «один endpoint, case внутри Envelope — дискриминатор» (канон §1).
 //
 // У сервера (Node) это же делает `http-transport.ts`. Замена на WebTransport-реализация
-// = смена провайдера в `app.config.ts`; код выше не трогается.
+// = смена провайдера в `app.config.ts` (SEAM); код выше не трогается.
 //
-// core/*-слой: общие транспортные швы приложения (не принадлежит плагину `auth`).
+// core/*-слой: общие транспортные швы приложения (не владеет плагину `auth`).
 
-import { InjectionToken, inject } from '@angular/core';
-import type { ITransport } from './transport';
+import { inject } from '@angular/core';
+import { ITRANSPORT, type ITransport } from './transport';
 import { appLog } from '../log/logger';
 
-const log = appLog('transport');
+// Re-export: старые импорты `from './transport-http'` продолжают работать
+// без изменения (транспортный SEAM-токен теперь живёт в `transport.ts`,
+// и мы его re-экспортируем здесь).
+export { ITRANSPORT } from './transport';
 
-/** DI-токен для ITransport (SEAM). */
-export const ITRANSPORT = new InjectionToken<ITransport>('AWP_ITRANSPORT');
+const log = appLog('transport');
 
 /**
  * HTTP-реализация: единственный «шов», через который все бизнес-запросы

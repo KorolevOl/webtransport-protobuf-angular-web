@@ -4,11 +4,12 @@
 //
 // Никаких «моков»: здесь только то, что сказал бек (через AuthService).
 
-import { Component, inject, computed, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../auth.service';
 import { AuthState } from '../../auth.state';
+import { injectTransport } from '../../../../core/transport/transport-http';
 
 @Component({
   selector: 'awp-home',
@@ -19,11 +20,13 @@ import { AuthState } from '../../auth.state';
 export class HomeComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  // Реальное имя активного транспорта (SEAM) — не хардкод: показывает,
+  // по какому шву (http/envelope | webtransport/envelope) сейчас ходят байты.
+  private readonly transport = injectTransport();
 
   readonly state = inject(AuthState);
   protected readonly busy = signal(false);
-
-  protected readonly transportName = computed(() => 'http/envelope');
+  protected readonly transportName = this.transport.name;
 
   protected tokenPreview(): string {
     const s = this.auth.currentSession;

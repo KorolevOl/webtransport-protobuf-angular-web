@@ -15,7 +15,7 @@
         <dd>{{ state.displayName() || '—' }}</dd>
 
         <dt>транспорт</dt>
-        <dd>{{ transportName() }} (<code>POST /v1/exchange</code> · <code>Content-Type: application/octet-stream</code>)</dd>
+        <dd><code>{{ transportName }}</code></dd>
 
         <dt>access-токен</dt>
         <dd>{{ tokenPreview() }} <span class="muted">({{ state.email() ? 'получен' : 'restore' }})</span></dd>
@@ -37,6 +37,7 @@
 
   <p class="foot muted">
     Живой обмен (без моков):
-    <code>web → server</code> POST <code>/v1/exchange</code> body <code>Envelope(case=loginRequest | registerRequest | logoutRequest)</code>
+    <code>web → server</code> — <code>Envelope(case=loginRequest | registerRequest | logoutRequest …)</code>
+    в активном транспорте (<code>{{ transportName }}</code>).
   </p>
 </div>
